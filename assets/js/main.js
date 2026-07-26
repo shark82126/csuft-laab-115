@@ -152,7 +152,7 @@ function renderNews(list, elId){
       <div class="news-body">
         <h3>${n.title}</h3>
         <p>${n.desc}</p>
-        <div class="news-meta"><span>${n.date}</span><span class="more">查看详情 →</span></div>
+        <div class="news-meta"><span>${n.date}</span><a class="more" href="https://www.csuft.edu.cn" target="_blank" rel="noopener">查看详情 →</a></div>
       </div>
     </article>`).join('');
 }
@@ -170,15 +170,13 @@ function renderPeople(list, elId){
     </article>`).join('');
 }
 function renderCompanies(list, elId){
-  document.getElementById(elId).innerHTML = list.map(c=>`
-    <article class="company-card reveal${c.cta?' coop-cta':''}">
-      <div class="company-logo">${c.initial}</div>
-      <div class="company-body">
-        <h3>${c.name}</h3>
-        <div class="founder">${c.founder}</div>
-        <p>${c.desc}</p>
-      </div>
-    </article>`).join('');
+  document.getElementById(elId).innerHTML = list.map(c=>{
+    const cls = `company-card reveal${c.cta?' coop-cta':''}`;
+    const inner = `<div class="company-logo">${c.initial}</div><div class="company-body"><h3>${c.name}</h3><div class="founder">${c.founder}</div><p>${c.desc}</p></div>`;
+    return c.cta
+      ? `<a class="${cls}" href="#cooperation">${inner}</a>`
+      : `<article class="${cls}">${inner}</article>`;
+  }).join('');
 }
 function renderFeed(list, elId){
   document.getElementById(elId).innerHTML = list.map(f=>`
@@ -252,6 +250,23 @@ const navToggle=document.getElementById('navToggle');
 const nav=document.getElementById('nav');
 navToggle.addEventListener('click',()=>nav.classList.toggle('open'));
 nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>nav.classList.remove('open')));
+
+/* ---------- 锚点平滑滚动（带吸顶导航偏移，避免标题被遮挡） ---------- */
+(function(){
+  const hdr=document.getElementById('header');
+  document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    a.addEventListener('click',e=>{
+      const id=a.getAttribute('href');
+      if(!id||id.length<2) return;
+      const t=document.querySelector(id);
+      if(!t) return;
+      e.preventDefault();
+      const y=t.getBoundingClientRect().top + window.scrollY - (hdr.offsetHeight + 14);
+      window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+      nav.classList.remove('open');
+    });
+  });
+})();
 
 /* ---------- 滚动揭示 ---------- */
 const io=new IntersectionObserver((entries)=>{
