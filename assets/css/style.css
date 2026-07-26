@@ -29,6 +29,7 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 a{color:inherit;text-decoration:none}
+html{scroll-behavior:smooth}
 img{max-width:100%;display:block}
 .container{width:min(var(--maxw),92%);margin:0 auto}
 
@@ -113,6 +114,7 @@ img{max-width:100%;display:block}
 .news-body p{font-size:14px;color:var(--muted);flex:1}
 .news-meta{font-size:13px;color:var(--green-600);display:flex;justify-content:space-between;align-items:center}
 .news-meta .more{color:var(--gold-600);font-weight:600}
+.news-meta .more:hover{text-decoration:underline;opacity:.85}
 
 /* 人物卡片 */
 .people-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
@@ -203,6 +205,8 @@ img{max-width:100%;display:block}
 .coop-card .coop-foot{font-size:13px;color:var(--green-600);font-weight:600}
 .coop-card.coop-cta{border-top-color:var(--gold);border-style:dashed;background:linear-gradient(135deg,#fff,#fcf6e8)}
 .coop-card.coop-cta .coop-type{background:var(--green-600)}
+.company-card.coop-cta{cursor:pointer;border-top-color:var(--gold);border-style:dashed;background:linear-gradient(135deg,#fff,#fcf6e8);transition:transform .2s,box-shadow .2s}
+.company-card.coop-cta:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(13,92,63,.14)}
 
 /* ---------- 活动日程时间轴 ---------- */
 .timeline{position:relative;max-width:860px;margin:0 auto;padding-left:28px}
