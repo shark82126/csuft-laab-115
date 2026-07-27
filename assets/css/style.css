@@ -252,6 +252,22 @@ section[id]{scroll-margin-top:84px}
 .bless-card .bc-name{font-weight:700;color:var(--green-800)}
 .bless-card .bc-meta{font-size:12px;color:var(--gold-600);white-space:nowrap}
 .bless-card p{font-size:14px;color:var(--ink);line-height:1.6}
+.bless-card.admin{position:relative}
+.bc-del{margin-top:10px;font-size:12px;padding:5px 12px;border:none;border-radius:8px;background:#fdecea;color:#c0392b;cursor:pointer}
+.bc-del:hover{background:#f9d6d2}
+.bless-empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:32px 0}
+.btn-manage{margin-top:10px;font-size:13px;padding:6px 14px;border:1px solid var(--gold);background:#fff;color:var(--gold-600);border-radius:999px;cursor:pointer;transition:.2s}
+.btn-manage:hover{background:var(--green-50)}
+.btn-manage.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.admin-modal{position:fixed;inset:0;background:rgba(15,40,30,.45);display:flex;align-items:center;justify-content:center;z-index:1200;padding:16px}
+.admin-modal[hidden]{display:none}
+.admin-box{background:#fff;border-radius:16px;padding:24px;width:330px;max-width:92vw;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.admin-box h3{margin:0 0 6px;color:var(--green-800);font-size:18px}
+.admin-box p{font-size:13px;color:var(--muted);margin:0 0 14px;line-height:1.5}
+.admin-box input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;margin-bottom:14px;box-sizing:border-box}
+.admin-acts{display:flex;gap:10px}
+.admin-acts .btn{flex:1;padding:9px 0}
+.admin-box .hint{font-size:12px;color:#7a8a80;margin-top:14px;line-height:1.5}
 
 /* 新增组件响应式 */
 @media(max-width:980px){
