@@ -320,8 +320,8 @@ const io=new IntersectionObserver((entries)=>{
 },{threshold:.12});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
-/* ---------- 校友祝语墙（后端存储+审核；无后端时降级 localStorage） ---------- */
-const API_BASE='';   // 同源。若审核后端部署在独立域名，改为如 'https://api.example.com'
+/* ---------- 校友祝语墙（提交即公开 + 管理员可删除） ---------- */
+const API_BASE='';   // 同源。若后端部署在独立域名，改为如 'https://api.example.com'
 const BK_KEY='csuft_blessings';
 const SEED=[
   {name:"校友会", grade:"全球校友", msg:"百十五载薪火相传，祝母校园林与建筑学院再谱新篇！"},
@@ -330,24 +330,38 @@ const SEED=[
 ];
 const wall=document.getElementById('blessingWall');
 const bkStatus=document.getElementById('bk-status');
+let adminMode=false, adminToken='', currentList=[];
+
 function setStatus(t,type){ if(!bkStatus) return; bkStatus.textContent=t; bkStatus.className='bk-status'+(type?(' '+type):''); }
 function localLoad(){ const s=localStorage.getItem(BK_KEY); if(s){try{return JSON.parse(s);}catch(e){}} localStorage.setItem(BK_KEY,JSON.stringify(SEED)); return SEED; }
 function localSave(a){ localStorage.setItem(BK_KEY,JSON.stringify(a)); }
-function renderBlessings(arr){ wall.innerHTML=arr.map(b=>`<div class="bless-card"><div class="bc-head"><span class="bc-name">${esc(b.name)}</span><span class="bc-meta">${esc(b.grade||'')}</span></div><p>${esc(b.msg)}</p></div>`).join(''); }
+
+function renderBlessings(arr){
+  if(!arr.length){ wall.innerHTML='<div class="bless-empty">还没有留言，快来写下第一条祝福吧～</div>'; return; }
+  wall.innerHTML=arr.map((b,i)=>`<div class="bless-card${adminMode?' admin':''}" data-idx="${i}"${b.id?` data-id="${b.id}"`:''}>
+    <div class="bc-head"><span class="bc-name">${esc(b.name)}</span><span class="bc-meta">${esc(b.grade||'')}</span></div>
+    <p>${esc(b.msg)}</p>
+    ${adminMode?`<button type="button" class="bc-del">删除</button>`:''}
+  </div>`).join('');
+}
 
 async function loadBlessings(){
   if(API_BASE!==null){
     try{
-      const res=await fetch(API_BASE+'/api/blessings?status=approved',{headers:{'Accept':'application/json'}});
-      if(!res.ok) throw new Error('no-api');
+      const headers={'Accept':'application/json'};
+      if(adminMode&&adminToken) headers['Authorization']='Bearer '+adminToken;
+      const res=await fetch(API_BASE+'/api/blessings',{headers});
+      if(!res.ok) throw 0;
       const data=await res.json();
-      renderBlessings(data.map(x=>({name:x.name,grade:x.grade,msg:x.msg})));
-      setStatus('已连接审核后端 · 仅展示已审核内容','ok');
+      currentList=data.map(x=>({id:x.id,name:x.name,grade:x.grade,msg:x.msg}));
+      renderBlessings(currentList);
+      setStatus(adminMode?'管理员模式：可删除不合适留言':'已连接后端 · 留言提交即公开','ok');
       return;
     }catch(e){}
   }
-  renderBlessings(localLoad());
-  setStatus('未连接审核后端 · 当前为本地预览，留言仅保存在本机','warn');
+  currentList=localLoad();
+  renderBlessings(currentList);
+  setStatus(adminMode?'本机管理模式：可删除本机留言':'未连接后端 · 留言仅保存在本机（提交即公开显示）','warn');
 }
 loadBlessings();
 
@@ -361,14 +375,53 @@ document.getElementById('blessingForm').addEventListener('submit',async e=>{
   if(API_BASE!==null){
     try{
       const res=await fetch(API_BASE+'/api/blessings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,grade,city,msg})});
-      if(!res.ok) throw new Error('no-api');
-      setStatus('提交成功，审核通过后将展示在墙上','ok'); e.target.reset(); loadBlessings(); return;
+      if(!res.ok) throw 0;
+      setStatus('发布成功，已公开显示在墙上','ok'); e.target.reset(); adminMode=false; syncManageBtn(); loadBlessings(); return;
     }catch(e){}
   }
-  const arr=localLoad(); const meta=[grade,city].filter(Boolean).join(' · ');
-  arr.unshift({name,grade:meta,msg}); localSave(arr); renderBlessings(arr);
-  setStatus('已保存到本机（未连接审核后端）','warn'); e.target.reset();
+  const meta=[grade,city].filter(Boolean).join(' · ');
+  currentList.unshift({name,grade:meta,msg}); localSave(currentList); renderBlessings(currentList);
+  setStatus('已保存到本机并公开展示（未连接后端）','warn'); e.target.reset();
 });
+
+async function deleteBlessing(item){
+  if(API_BASE!==null && item.id){
+    try{
+      const res=await fetch(API_BASE+'/api/blessings/'+item.id,{method:'DELETE',headers:{'Authorization':'Bearer '+adminToken}});
+      if(!res.ok) throw 0;
+      setStatus('已删除该留言','ok'); loadBlessings(); return;
+    }catch(e){ setStatus('删除失败：管理码错误或无权限','warn'); return; }
+  }
+  currentList=currentList.filter(x=>x!==item); localSave(currentList); renderBlessings(currentList);
+  setStatus('已删除本机留言','warn');
+}
+wall.addEventListener('click',e=>{
+  const btn=e.target.closest('.bc-del'); if(!btn) return;
+  const card=btn.closest('.bless-card');
+  const item=currentList[+card.dataset.idx];
+  if(item && confirm('确认删除这条留言？')) deleteBlessing(item);
+});
+
+/* 管理模式：弹窗输入管理码 */
+const bkManageBtn=document.getElementById('bkManageBtn');
+const adminModal=document.getElementById('adminModal');
+const adminCode=document.getElementById('adminCode');
+function syncManageBtn(){ if(!bkManageBtn) return; bkManageBtn.textContent=adminMode?'退出管理':'🔐 管理留言'; bkManageBtn.classList.toggle('active',adminMode); }
+if(bkManageBtn){
+  bkManageBtn.addEventListener('click',()=>{
+    if(adminMode){ adminMode=false; adminToken=''; syncManageBtn(); loadBlessings(); return; }
+    if(adminModal){ adminModal.hidden=false; adminCode.value=''; adminCode.focus(); }
+  });
+}
+if(adminModal){
+  document.getElementById('adminCancel').addEventListener('click',()=>{ adminModal.hidden=true; });
+  document.getElementById('adminConfirm').addEventListener('click',()=>{
+    const code=adminCode.value.trim();
+    if(!code){ alert('请输入管理码'); return; }
+    adminToken=code; adminMode=true; adminModal.hidden=true; syncManageBtn(); loadBlessings();
+  });
+  adminModal.addEventListener('click',e=>{ if(e.target===adminModal) adminModal.hidden=true; });
+}
 
 /* ---------- 校庆倒计时（目标日：2026-11-08 09:00） ---------- */
 (function(){
