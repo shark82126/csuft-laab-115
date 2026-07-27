@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>祝语墙审核台 · 园林与建筑学院（中南林业科技大学）</title>
+<title>祝语墙管理台 · 园林与建筑学院（中南林业科技大学）</title>
 <style>
   body{font-family:-apple-system,Segoe UI,Roboto,'Microsoft YaHei',sans-serif;background:#f3f7f4;margin:0;padding:24px;color:#1f3329}
   h1{font-size:20px;color:#0d5236;margin-top:0}
@@ -12,29 +12,23 @@
   input[type=password]{width:240px}
   button{cursor:pointer;border:none;border-radius:8px;padding:8px 14px;font-size:14px}
   .btn-load{background:#0d5236;color:#fff}
-  .ok{background:#1f9d6b;color:#fff}
   .no{background:#c0392b;color:#fff}
   .list{display:grid;gap:12px;max-width:860px}
   .card{border:1px solid #dceae2;background:#fff;border-radius:10px;padding:14px}
-  .card.pending{border-color:#e7c98a;background:#fffaf0}
-  .card.approved{border-color:#bfe3cd}
   .meta{font-size:13px;color:#5b6b62;margin-bottom:6px}
   .name{font-weight:700;color:#0d5236}
-  .status{font-size:12px;padding:2px 8px;border-radius:999px;margin-left:8px}
-  .status.pending{background:#fbf3df;color:#8a5a00}
-  .status.approved{background:#e8f5ec;color:#0d5236}
   .msg{font-size:15px;line-height:1.6}
   .acts{margin-top:10px;display:flex;gap:8px}
   .hint{font-size:12px;color:#7a8a80;margin-top:4px}
 </style>
 </head>
 <body>
-  <h1>校友祝语墙 · 审核台</h1>
+  <h1>校友祝语墙 · 管理台</h1>
   <div class="bar">
-    <input type="password" id="token" placeholder="管理员 Token" />
+    <input type="password" id="token" placeholder="管理员码" />
     <button class="btn-load" id="load">加载全部留言</button>
   </div>
-  <p class="hint">Token 默认 <code>csuft-115-admin</code>（生产环境务必通过环境变量 ADMIN_TOKEN 更换）。审核通过的内容会公开展示在祝语墙。</p>
+  <p class="hint">留言提交即公开、无需审核。管理码默认 <code>csuft-115-admin</code>（生产环境务必通过环境变量 ADMIN_TOKEN 更换）。可删除不合适留言。</p>
   <div class="list" id="list"></div>
 
   <script>
@@ -42,23 +36,23 @@
     document.getElementById('load').addEventListener('click', load);
     async function load() {
       const t = document.getElementById('token').value.trim();
-      if (!t) { alert('请输入 Token'); return; }
+      if (!t) { alert('请输入管理码'); return; }
       const r = await fetch(API + '/api/blessings', { headers: { 'Authorization': 'Bearer ' + t } });
-      if (r.status === 401) { alert('Token 错误'); return; }
+      if (r.status === 401) { alert('管理码错误'); return; }
       const data = await r.json();
       const list = document.getElementById('list');
       if (!data.length) { list.innerHTML = '<p class="hint">暂无留言。</p>'; return; }
-      list.innerHTML = data.map(x => `<div class="card ${x.status}">
-        <div class="meta"><span class="name">${esc(x.name)}</span><span class="status ${x.status}">${x.status === 'approved' ? '已通过' : '待审核'}</span><span> · ${esc(x.grade || '')}</span></div>
+      list.innerHTML = data.map(x => `<div class="card">
+        <div class="meta"><span class="name">${esc(x.name)}</span><span> · ${esc(x.grade || '')}</span></div>
         <div class="msg">${esc(x.msg)}</div>
         <div class="acts">
-          ${x.status === 'pending' ? `<button class="ok" data-act="approve" data-id="${x.id}">通过</button>` : ''}
-          <button class="no" data-act="reject" data-id="${x.id}">删除</button>
+          <button class="no" data-id="${x.id}">删除</button>
         </div></div>`).join('');
-      list.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', () => act(b.dataset.act, b.dataset.id, t)));
+      list.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => del(b.dataset.id, t)));
     }
-    async function act(a, id, t) {
-      await fetch(API + '/api/blessings/' + id + '/' + a, { method: 'POST', headers: { 'Authorization': 'Bearer ' + t } });
+    async function del(id, t) {
+      if (!confirm('确认删除这条留言？')) return;
+      await fetch(API + '/api/blessings/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + t } });
       load();
     }
     function esc(s) { return (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
