@@ -96,11 +96,28 @@ img{max-width:100%;display:block}
 /* ---------- 通用区块 ---------- */
 .section{padding:66px 0}
 .section-alt{background:var(--bg-alt)}
-.section-head{margin-bottom:34px;text-align:center}
+.section-head{margin-bottom:34px;text-align:center;position:relative}
 .section-kicker{color:var(--gold-600);font-size:14px;letter-spacing:2px;margin-bottom:6px}
 .section-title{font-size:30px;color:var(--green-800);font-weight:800;position:relative;display:inline-block}
 .section-title::after{content:"";display:block;width:56px;height:4px;background:var(--gold);border-radius:4px;margin:12px auto 0}
 .section-desc{color:var(--muted);margin-top:10px;font-size:15px}
+
+/* 深链接直达：带 #id 打开时落到吸顶导航下方 */
+section[id]{scroll-margin-top:84px}
+
+/* 板块永久链接（点击复制该板块专属网址） */
+.permalink{position:absolute;top:2px;right:0;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:var(--green-600);background:rgba(13,92,63,.06);border:1px solid var(--line);opacity:.5;transition:.2s;cursor:pointer}
+.permalink:hover{opacity:1;background:var(--green-600);color:#fff;transform:translateY(-1px)}
+.permalink svg{width:18px;height:18px}
+@media (max-width:768px){ .permalink{top:-6px;right:0;width:30px;height:30px;opacity:.7} }
+
+/* 导航当前板块高亮 */
+.nav a.active{color:var(--green-700)}
+.nav a.active::after{width:100%}
+
+/* 复制链接提示 */
+.toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%) translateY(12px);background:rgba(20,40,32,.94);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:88vw;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;visibility:hidden;transition:.25s;z-index:60;word-break:break-all}
+.toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 
 /* 新闻卡片 */
 .news-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
@@ -187,6 +204,7 @@ img{max-width:100%;display:block}
   .nav.open{max-height:420px}
   .nav a{padding:14px 6vw;border-bottom:1px solid var(--line)}
   .nav a::after{display:none}
+  .nav a.active{color:var(--green-700);font-weight:700;background:rgba(13,92,63,.06)}
   .nav-toggle{display:flex}
   .news-grid,.company-grid,.people-grid{grid-template-columns:1fr}
   .intro-stats{grid-template-columns:repeat(3,1fr)}
