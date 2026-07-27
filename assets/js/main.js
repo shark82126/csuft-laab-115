@@ -251,20 +251,66 @@ const nav=document.getElementById('nav');
 navToggle.addEventListener('click',()=>nav.classList.toggle('open'));
 nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>nav.classList.remove('open')));
 
-/* ---------- 锚点平滑滚动（带吸顶导航偏移，避免标题被遮挡） ---------- */
+/* ---------- 锚点平滑滚动（更新真实 #hash 链接 + 吸顶偏移） ---------- */
 (function(){
   const hdr=document.getElementById('header');
+  const offset=()=>hdr.offsetHeight+14;
+  function goto(id){
+    const t=document.querySelector(id);
+    if(!t) return;
+    const y=t.getBoundingClientRect().top + window.scrollY - offset();
+    window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+  }
   document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    if(a.classList.contains('permalink')) return;   // 永久链接单独处理
     a.addEventListener('click',e=>{
       const id=a.getAttribute('href');
       if(!id||id.length<2) return;
       const t=document.querySelector(id);
       if(!t) return;
       e.preventDefault();
-      const y=t.getBoundingClientRect().top + window.scrollY - (hdr.offsetHeight + 14);
-      window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+      goto(id);
+      history.replaceState(null,'',id);             // 地址栏变为可分享的真实链接
       nav.classList.remove('open');
     });
+  });
+})();
+
+/* ---------- 滚动高亮当前板块（scroll-spy） ---------- */
+(function(){
+  const navLinks=[...document.querySelectorAll('#nav a')];
+  const map={};
+  navLinks.forEach(a=>{ const id=a.getAttribute('href'); if(id&&id.startsWith('#')&&id.length>1) map[id.slice(1)]=a; });
+  const secs=Object.keys(map).map(id=>document.getElementById(id)).filter(Boolean);
+  const spy=new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){
+      navLinks.forEach(l=>l.classList.remove('active'));
+      const l=map[e.target.id]; if(l) l.classList.add('active');
+    }});
+  },{rootMargin:'-45% 0px -50% 0px',threshold:0});
+  secs.forEach(s=>spy.observe(s));
+})();
+
+/* ---------- 每个板块加永久链接（点击复制该板块专属网址） ---------- */
+(function(){
+  const toast=document.createElement('div');
+  toast.className='toast'; toast.setAttribute('aria-live','polite'); document.body.appendChild(toast);
+  let timer=null;
+  const showToast=msg=>{ toast.textContent=msg; toast.classList.add('show'); clearTimeout(timer); timer=setTimeout(()=>toast.classList.remove('show'),1900); };
+  async function copyLink(id){
+    const url=location.origin+location.pathname+'#'+id;
+    try{ await navigator.clipboard.writeText(url); showToast('已复制板块链接：'+url); }
+    catch(e){ history.replaceState(null,'','#'+id); showToast('板块链接：'+url); }
+  }
+  const SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15a4 4 0 0 0 6 .4l2.5-2.5a4 4 0 0 0-5.7-5.7L11 8.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 9a4 4 0 0 0-6-.4L6.5 11.1a4 4 0 0 0 5.7 5.7L13 15.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  document.querySelectorAll('section[id] .section-head').forEach(head=>{
+    const sec=head.closest('section'); const id=sec&&sec.id;
+    if(!id||id==='top') return;
+    const a=document.createElement('a');
+    a.className='permalink'; a.href='#'+id; a.title='复制本板块链接'; a.setAttribute('aria-label','复制本板块链接');
+    a.innerHTML=SVG;
+    a.addEventListener('click',e=>{ e.preventDefault(); copyLink(id); });
+    head.appendChild(a);
   });
 })();
 
