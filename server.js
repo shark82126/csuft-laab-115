@@ -1,14 +1,15 @@
 /**
  * 校友祝语墙 · 轻量后端（Node 零依赖）
- * - 提交：POST /api/blessings        body {name, grade, city, msg}  -> 状态 pending
- * - 公开列表：GET /api/blessings?status=approved  -> 仅已审核
- * - 管理列表：GET /api/blessings      （需 Authorization: Bearer <ADMIN_TOKEN>）
- * - 审核通过：POST /api/blessings/:id/approve
- * - 拒绝删除：POST /api/blessings/:id/reject
- * 同时托管本目录静态文件，便于本地“前端+后端”一体预览。
+ * 模式：提交即公开（status=approved），管理员凭码可删除不合适留言。
  *
+ * - 公开列表：GET  /api/blessings                       -> 仅已公开(approved)留言
+ * - 管理列表：GET  /api/blessings (Authorization: Bearer <ADMIN_TOKEN>) -> 全部留言(含 id)
+ * - 提交：    POST /api/blessings {name,grade,city,msg} -> 直接 approved（公开）
+ * - 删除：    DELETE /api/blessings/:id (Authorization: Bearer <ADMIN_TOKEN>)
+ *
+ * 同时托管本目录静态文件，便于本地“前端+后端”一体预览。
  * 启动：node server.js   （端口 3001，可用 PORT / ADMIN_TOKEN 环境变量覆盖）
- * 生产务必修改 ADMIN_TOKEN。
+ * 生产务必通过环境变量修改 ADMIN_TOKEN。
  */
 const http = require('http');
 const fs = require('fs');
@@ -81,10 +82,10 @@ const server = http.createServer(async (req, res) => {
   if (url.startsWith('/api/')) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
-    // 提交
+    // 提交 -> 直接公开
     if (url === '/api/blessings' && req.method === 'POST') {
       const b = await readBody(req);
       if (!b.name || !b.msg) return send(res, 400, { ok: false, error: '姓名和祝语必填' });
@@ -95,33 +96,29 @@ const server = http.createServer(async (req, res) => {
         grade: String(b.grade || '').slice(0, 40),
         city: String(b.city || '').slice(0, 40),
         msg: String(b.msg).slice(0, 300),
-        status: 'pending',
+        status: 'approved',
         ts: Date.now()
       };
       all.unshift(item);
       writeAll(all);
-      return send(res, 200, { ok: true, id: item.id, status: 'pending' });
+      return send(res, 200, { ok: true, id: item.id, status: 'approved' });
     }
 
-    // 列表
+    // 列表：管理员返回全部（含 id），否则仅已公开
     if (url === '/api/blessings' && req.method === 'GET') {
       const all = readAll();
-      if (new URL(req.url, 'http://x').searchParams.get('status') === 'approved') {
-        return send(res, 200, all.filter(x => x.status === 'approved').map(clean));
-      }
-      if (!authAdmin(req)) return send(res, 401, { ok: false, error: '未授权' });
-      return send(res, 200, all.map(clean).map(x => ({ ...x, status: (all.find(a => a.id === x.id) || {}).status })));
+      if (authAdmin(req)) return send(res, 200, all.map(clean));
+      return send(res, 200, all.filter(x => x.status === 'approved').map(clean));
     }
 
-    // 审核 / 删除
-    const m = url.match(/^\/api\/blessings\/(\w+)\/(approve|reject)$/);
-    if (m && req.method === 'POST') {
+    // 删除（需管理码）
+    const m = url.match(/^\/api\/blessings\/(\w+)$/);
+    if (m && req.method === 'DELETE') {
       if (!authAdmin(req)) return send(res, 401, { ok: false, error: '未授权' });
       const all = readAll();
       const i = all.findIndex(x => x.id === m[1]);
       if (i < 0) return send(res, 404, { ok: false, error: '不存在' });
-      if (m[2] === 'approve') all[i].status = 'approved';
-      else all.splice(i, 1);
+      all.splice(i, 1);
       writeAll(all);
       return send(res, 200, { ok: true });
     }
