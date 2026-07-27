@@ -220,6 +220,7 @@
       <div class="section-head">
         <h2 class="section-title">校友登记 · 祝语墙</h2>
         <p class="section-desc">留下您的信息与祝福，汇聚全球中南林风景园林人的心声</p>
+        <button type="button" class="btn-manage" id="bkManageBtn">🔐 管理留言</button>
       </div>
 
       <div class="blessing-layout">
@@ -230,10 +231,23 @@
           <label>所在地<input type="text" id="bk-city" maxlength="30" placeholder="如：长沙 / 广州" /></label>
           <label>祝语<textarea id="bk-msg" maxlength="120" rows="3" placeholder="写下对母校与学科的祝福……" required></textarea></label>
           <button type="submit" class="btn btn-gold">发布祝语</button>
-          <p class="form-tip">提交内容经管理员审核通过后公开展示；未连接审核后端时，留言仅保存在本浏览器。</p>
+          <p class="form-tip">提交即公开显示在墙上；连接后端后留言对所有访客可见，管理员可删除不合适内容。未连接后端时留言仅保存在本机浏览器。</p>
           <div id="bk-status" class="bk-status" role="status" aria-live="polite"></div>
         </form>
         <div class="blessing-wall" id="blessingWall"><!-- JS 注入 --></div>
+        <!-- 管理弹窗 -->
+        <div class="admin-modal" id="adminModal" hidden>
+          <div class="admin-box">
+            <h3>管理员验证</h3>
+            <p>输入管理码进入管理模式，可删除不合适留言。</p>
+            <input type="password" id="adminCode" placeholder="管理码" />
+            <div class="admin-acts">
+              <button type="button" class="btn btn-gold" id="adminConfirm">进入</button>
+              <button type="button" class="btn" id="adminCancel">取消</button>
+            </div>
+            <p class="hint" id="adminHint">管理码默认 csuft-115-admin；未连接后端时输入任意内容即可管理本机留言。</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
